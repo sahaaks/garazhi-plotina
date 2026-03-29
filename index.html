@@ -153,10 +153,7 @@
     </div>
 
     <script>
-        // ==================== НАСТРОЙКА ====================
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwToZ7PnBvM23DtsMH09Cb2zlVyy9Ld-wpA65Utq56xURxvuKME1fm_Q0_sXq3F6FBqQ/exec';
-        // ===================================================
-        
         const STORAGE_KEY = 'garageReadings_Plotina';
         let readings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         
@@ -169,211 +166,109 @@
         const clearHistoryBtn = document.getElementById('clearHistory');
         const submitBtn = document.getElementById('submitBtn');
         
-        function isOnline() { return navigator.onLine; }
-        
-        function showOnlineStatus() {
-            const statusDiv = document.createElement('div');
-            statusDiv.id = 'onlineStatus';
-            statusDiv.style.cssText = 'text-align: center; margin-bottom: 15px;';
-            statusDiv.innerHTML = isOnline() 
-                ? '<span class="online-status status-online">🟢 Онлайн - данные будут сохранены в облаке</span>'
-                : '<span class="online-status status-offline">🔴 Офлайн - данные сохранятся на устройстве</span>';
-            const existingStatus = document.getElementById('onlineStatus');
-            if (existingStatus) existingStatus.replaceWith(statusDiv);
-            else form.before(statusDiv);
-        }
-        
-        window.addEventListener('online', () => { showOnlineStatus(); showMessage('Интернет появился!', 'success'); });
-        window.addEventListener('offline', () => { showOnlineStatus(); showMessage('Интернет пропал. Данные сохранятся на устройстве', 'info'); });
-        
         function showMessage(text, type) {
             messageDiv.textContent = text;
             messageDiv.className = `message ${type}`;
             messageDiv.style.display = 'block';
-            setTimeout(() => messageDiv.style.display = 'none', 4000);
+            setTimeout(() => messageDiv.style.display = 'none', 3000);
         }
         
-        async function saveToGoogleSheets(readingData) {
-            console.log('📤 Отправка...');
+        async function sendData(garageNumber, reading, notes) {
             try {
                 await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
                     mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        garageNumber: readingData.garageNumber,
-                        reading: readingData.reading,
-                        notes: readingData.notes || '',
-                        timestamp: new Date().toISOString()
-                    })
+                    body: JSON.stringify({ garageNumber, reading, notes, timestamp: new Date().toISOString() })
                 });
-                console.log('✅ Данные отправлены');
                 return true;
-            } catch (error) {
-                console.error('❌ Ошибка:', error);
+            } catch (e) {
+                console.error(e);
                 return false;
             }
         }
         
         function showThanksModal(garageNumber) {
-            const modalOverlay = document.createElement('div');
-            modalOverlay.style.position = 'fixed';
-            modalOverlay.style.top = '0';
-            modalOverlay.style.left = '0';
-            modalOverlay.style.width = '100%';
-            modalOverlay.style.height = '100%';
-            modalOverlay.style.backgroundColor = 'rgba(0,0,0,0.7)';
-            modalOverlay.style.display = 'flex';
-            modalOverlay.style.alignItems = 'center';
-            modalOverlay.style.justifyContent = 'center';
-            modalOverlay.style.zIndex = '2000';
-            
-            const modalContent = document.createElement('div');
-            modalContent.style.backgroundColor = 'white';
-            modalContent.style.borderRadius = '24px';
-            modalContent.style.padding = '30px';
-            modalContent.style.textAlign = 'center';
-            modalContent.style.maxWidth = '300px';
-            modalContent.style.boxShadow = '0 20px 60px rgba(0,0,0,0.3)';
-            modalContent.innerHTML = `
-                <div style="font-size: 64px; margin-bottom: 16px;">🙏</div>
-                <h2 style="color: #1e3c2c; margin-bottom: 12px;">Спасибо!</h2>
-                <p style="color: #2a6b3c; font-size: 18px; margin-bottom: 8px;">Гараж №${garageNumber}</p>
-                <p style="color: #555; margin-bottom: 20px;">Показания успешно переданы!</p>
-                <button id="closeThanksBtn" style="background: #2a6b3c; color: white; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-size: 16px;">Закрыть</button>
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:2000';
+            const modal = document.createElement('div');
+            modal.style.cssText = 'background:white;border-radius:24px;padding:30px;text-align:center;max-width:300px';
+            modal.innerHTML = `
+                <div style="font-size:64px;margin-bottom:16px;">🙏</div>
+                <h2 style="color:#1e3c2c;margin-bottom:12px;">Спасибо!</h2>
+                <p style="color:#2a6b3c;font-size:18px;margin-bottom:8px;">Гараж №${garageNumber}</p>
+                <p style="color:#555;margin-bottom:20px;">Показания успешно переданы!</p>
+                <button id="closeBtn" style="background:#2a6b3c;color:white;border:none;padding:10px 20px;border-radius:30px;cursor:pointer;">Закрыть</button>
             `;
-            
-            modalOverlay.appendChild(modalContent);
-            document.body.appendChild(modalOverlay);
-            
-            document.getElementById('closeThanksBtn').onclick = () => {
-                document.body.removeChild(modalOverlay);
-            };
-            
-            modalOverlay.onclick = (e) => {
-                if (e.target === modalOverlay) {
-                    document.body.removeChild(modalOverlay);
-                }
-            };
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+            document.getElementById('closeBtn').onclick = () => overlay.remove();
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
         }
         
         function displayReadings() {
             if (readings.length === 0) {
-                readingsListDiv.innerHTML = '<p style="text-align: center; color: #999;">Пока нет переданных показаний</p>';
-                updateStats();
+                readingsListDiv.innerHTML = '<p style="text-align:center;color:#999;">Пока нет переданных показаний</p>';
                 return;
             }
             let html = '';
             [...readings].reverse().forEach(r => {
-                html += `
-                    <div class="reading-card">
-                        <div class="garage">🚗 Гараж №${escapeHtml(r.garageNumber)}</div>
-                        <div class="value">⚡ ${r.reading} кВт·ч</div>
-                        ${r.notes ? `<div class="notes">💬 ${escapeHtml(r.notes)}</div>` : ''}
-                        <div class="date">📅 ${new Date(r.date).toLocaleString('ru-RU')}</div>
-                    </div>
-                `;
+                html += `<div class="reading-card">
+                    <div class="garage">🚗 Гараж №${escapeHtml(r.garageNumber)}</div>
+                    <div class="value">⚡ ${r.reading} кВт·ч</div>
+                    ${r.notes ? `<div class="notes">💬 ${escapeHtml(r.notes)}</div>` : ''}
+                    <div class="date">📅 ${new Date(r.date).toLocaleString('ru-RU')}</div>
+                </div>`;
             });
             readingsListDiv.innerHTML = html;
-            updateStats();
         }
         
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         
-        function updateStats() {
-            const total = readings.length;
-            let statsDiv = document.querySelector('.stats');
-            if (!statsDiv) {
-                statsDiv = document.createElement('div');
-                statsDiv.className = 'stats';
-                document.querySelector('.history h3')?.after(statsDiv);
-            }
-            const lastReading = readings.length > 0 ? readings[readings.length - 1] : null;
-            statsDiv.innerHTML = `📊 Всего передано показаний: ${total}${lastReading ? ` | Последнее: ${new Date(lastReading.date).toLocaleDateString('ru-RU')}` : ''}`;
-        }
-        
-        form.addEventListener('submit', async function(e) {
+        form.onsubmit = async (e) => {
             e.preventDefault();
-            
             const garageNumber = garageNumberInput.value.trim();
             const reading = readingInput.value;
             const notes = notesInput.value.trim();
             
-            if (!garageNumber) {
-                showMessage('❌ Укажите номер гаража!', 'error');
-                garageNumberInput.focus();
-                return;
-            }
-            
-            if (!reading) {
-                showMessage('❌ Введите показания счётчика!', 'error');
-                readingInput.focus();
-                return;
-            }
-            
+            if (!garageNumber) { showMessage('❌ Укажите номер гаража!', 'error'); return; }
+            if (!reading) { showMessage('❌ Введите показания!', 'error'); return; }
             const readingValue = parseFloat(reading);
-            if (isNaN(readingValue) || readingValue < 0) {
-                showMessage('❌ Введите корректные показания (положительное число)', 'error');
-                readingInput.focus();
-                return;
-            }
+            if (isNaN(readingValue) || readingValue < 0) { showMessage('❌ Введите корректные показания!', 'error'); return; }
             
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="loading-spinner"></span> Отправка...';
+            submitBtn.innerHTML = '⏳ Отправка...';
             
-            const cloudData = {
-                garageNumber: garageNumber,
-                reading: readingValue,
-                notes: notes || null,
-                date: new Date().toISOString()
-            };
+            const saved = await sendData(garageNumber, readingValue, notes);
             
-            let cloudSaved = false;
-            if (isOnline()) {
-                cloudSaved = await saveToGoogleSheets(cloudData);
-            }
-            
-            const localData = {
-                garageNumber: garageNumber,
-                reading: readingValue,
-                notes: notes || null,
-                date: new Date().toISOString()
-            };
-            readings.push(localData);
+            readings.push({ garageNumber, reading: readingValue, notes, date: new Date().toISOString() });
             localStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
             
-            if (cloudSaved) {
+            if (saved) {
                 showMessage('✅ Показания отправлены!', 'success');
                 showThanksModal(garageNumber);
-            } else if (isOnline()) {
-                showMessage('⚠️ Данные сохранены на устройстве, но не отправлены в облако', 'info');
             } else {
-                showMessage('✅ Сохранено на устройстве. При появлении интернета отправятся в облако', 'success');
+                showMessage('⚠️ Сохранено на устройстве', 'info');
             }
             
             garageNumberInput.value = '';
             readingInput.value = '';
             notesInput.value = '';
             displayReadings();
-            
             submitBtn.disabled = false;
             submitBtn.innerHTML = '📤 Отправить показания';
-            garageNumberInput.focus();
-        });
+        };
         
-        clearHistoryBtn.addEventListener('click', () => {
-            if (confirm('Очистить историю на этом устройстве?')) {
+        clearHistoryBtn.onclick = () => {
+            if (confirm('Очистить историю?')) {
                 readings = [];
                 localStorage.removeItem(STORAGE_KEY);
                 displayReadings();
                 showMessage('История очищена', 'success');
             }
-        });
+        };
         
         displayReadings();
-        showOnlineStatus();
-        
-        console.log('Сайт "Гаражи Плотина" загружен');
     </script>
 </body>
 </html>
