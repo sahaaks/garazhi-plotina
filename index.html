@@ -337,55 +337,84 @@
             statsDiv.innerHTML = `📊 Всего передано показаний: ${total}${lastReading ? ` | Последнее: ${new Date(lastReading.date).toLocaleDateString('ru-RU')}` : ''}`;
         }
         
-        // Обработка отправки формы
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const garageNumber = garageNumberInput.value.trim();
-            const reading = readingInput.value;
-            const notes = notesInput.value.trim();
-            
-            if (!garageNumber) { showMessage('Укажите номер гаража', 'error'); garageNumberInput.focus(); return; }
-            if (!reading) { showMessage('Введите показания', 'error'); readingInput.focus(); return; }
-            const readingValue = parseFloat(reading);
-            if (isNaN(readingValue) || readingValue < 0) { showMessage('Введите корректные показания', 'error'); return; }
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="loading-spinner"></span> Отправка...';
-            
-            // Данные для отправки в облако
-            const cloudData = {
-                garageNumber: garageNumber,
-                reading: readingValue,
-                notes: notes || null,
-                photo: currentPhoto || null,
-                date: new Date().toISOString()
-            };
-            
-            // Отправляем в Google Таблицу
-            let cloudSaved = false;
-            if (isOnline()) {
-                cloudSaved = await saveToGoogleSheets(cloudData);
-            }
-            
-            // Сохраняем в localStorage только текст (без фото)
-            const localData = {
-                garageNumber: garageNumber,
-                reading: readingValue,
-                notes: notes || null,
-                date: new Date().toISOString()
-            };
-            readings.push(localData);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
-            
-            // Сообщение пользователю
-            if (cloudSaved) {
-                showMessage('✅ Показания отправлены! Фото сохранено на Google Диск', 'success');
-            } else if (isOnline()) {
-                showMessage('⚠️ Данные сохранены на устройстве, но не отправлены в облако', 'info');
-            } else {
-                showMessage('✅ Сохранено на устройстве. При появлении интернета отправятся в облако', 'success');
-            }
+// Обработка отправки формы
+form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const garageNumber = garageNumberInput.value.trim();
+    const reading = readingInput.value;
+    const notes = notesInput.value.trim();
+    
+    // === ПРОВЕРКИ ===
+    if (!garageNumber) {
+        showMessage('❌ Укажите номер гаража!', 'error');
+        garageNumberInput.focus();
+        return;
+    }
+    
+    if (!reading) {
+        showMessage('❌ Введите показания счётчика!', 'error');
+        readingInput.focus();
+        return;
+    }
+    
+    const readingValue = parseFloat(reading);
+    if (isNaN(readingValue) || readingValue < 0) {
+        showMessage('❌ Введите корректные показания (положительное число)', 'error');
+        readingInput.focus();
+        return;
+    }
+    
+    // === ВСЕ ПРОВЕРКИ ПРОЙДЕНЫ ===
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="loading-spinner"></span> Отправка...';
+    
+    // Данные для отправки в облако
+    const cloudData = {
+        garageNumber: garageNumber,
+        reading: readingValue,
+        notes: notes || null,
+        photo: currentPhoto || null,
+        date: new Date().toISOString()
+    };
+    
+    // Отправляем в Google Таблицу
+    let cloudSaved = false;
+    if (isOnline()) {
+        cloudSaved = await saveToGoogleSheets(cloudData);
+    }
+    
+    // Сохраняем в localStorage только текст (без фото)
+    const localData = {
+        garageNumber: garageNumber,
+        reading: readingValue,
+        notes: notes || null,
+        date: new Date().toISOString()
+    };
+    readings.push(localData);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
+    
+    // Сообщение пользователю
+    if (cloudSaved) {
+        showMessage('✅ Показания отправлены! Фото сохранено на Google Диск', 'success');
+    } else if (isOnline()) {
+        showMessage('⚠️ Данные сохранены на устройстве, но не отправлены в облако', 'info');
+    } else {
+        showMessage('✅ Сохранено на устройстве. При появлении интернета отправятся в облако', 'success');
+    }
+    
+    // Очищаем форму
+    garageNumberInput.value = '';
+    readingInput.value = '';
+    notesInput.value = '';
+    removePhoto();
+    displayReadings();
+    
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '📤 Отправить показания';
+    garageNumberInput.focus();
+});
             
             // Очищаем форму
             garageNumberInput.value = '';
