@@ -112,6 +112,8 @@
         .reading-card .value { font-size: 20px; font-weight: bold; color: #1e3c2c; margin: 8px 0; }
         .reading-card .notes { color: #666; font-size: 13px; margin: 8px 0; padding: 8px; background: #fff; border-radius: 8px; }
         .reading-card .date { font-size: 11px; color: #999; margin-top: 8px; }
+        .reading-card .photo-mini { margin-top: 10px; max-width: 120px; cursor: pointer; }
+        .reading-card .photo-mini img { width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; }
         .btn-clear { background: #dc3545; margin-top: 15px; font-size: 14px; padding: 12px; }
         .btn-clear:hover { background: #c82333; }
         .stats {
@@ -170,7 +172,7 @@
                         <div class="photo-label">
                             <span>📷</span>
                             <span>Нажмите для загрузки или фото</span>
-                            <span style="font-size: 12px;">Поддержируются JPG, PNG</span>
+                            <span style="font-size: 12px;">Поддерживаются JPG, PNG</span>
                         </div>
                         <input type="file" id="photoInput" accept="image/jpeg,image/png,image/jpg" capture="environment">
                     </div>
@@ -202,7 +204,10 @@
     </div>
 
     <script>
+        // ==================== НАСТРОЙКА ====================
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxwToZ7PnBvM23DtsMH09Cb2zlVyy9Ld-wpA65Utq56xURxvuKME1fm_Q0_sXq3F6FBqQ/exec';
+        // ===================================================
+        
         const STORAGE_KEY = 'garageReadings_Plotina';
         let readings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         
@@ -273,32 +278,69 @@
             setTimeout(() => messageDiv.style.display = 'none', 4000);
         }
         
-async function saveToGoogleSheets(readingData) {
-    console.log('📤 Отправка...');
-    console.log('Фото есть?', readingData.photo ? `Да, длина ${readingData.photo.length}` : 'Нет');
-    console.log('Номер гаража:', readingData.garageNumber);
-    console.log('Показания:', readingData.reading);
-    
-    try {
-        await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                garageNumber: readingData.garageNumber,
-                reading: readingData.reading,
-                notes: readingData.notes || '',
-                photo: readingData.photo || '',
-                timestamp: new Date().toISOString()
-            })
-        });
-        console.log('✅ Данные отправлены');
-        return true;
-    } catch (error) {
-        console.error('❌ Ошибка:', error);
-        return false;
-    }
-}
+        async function saveToGoogleSheets(readingData) {
+            console.log('📤 Отправка...');
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        garageNumber: readingData.garageNumber,
+                        reading: readingData.reading,
+                        notes: readingData.notes || '',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                console.log('✅ Данные отправлены');
+                return true;
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                return false;
+            }
+        }
+        
+        function showThanksModal(garageNumber) {
+            const modalOverlay = document.createElement('div');
+            modalOverlay.style.position = 'fixed';
+            modalOverlay.style.top = '0';
+            modalOverlay.style.left = '0';
+            modalOverlay.style.width = '100%';
+            modalOverlay.style.height = '100%';
+            modalOverlay.style.backgroundColor = 'rgba(0,0,0,0.7)';
+            modalOverlay.style.display = 'flex';
+            modalOverlay.style.alignItems = 'center';
+            modalOverlay.style.justifyContent = 'center';
+            modalOverlay.style.zIndex = '2000';
+            
+            const modalContent = document.createElement('div');
+            modalContent.style.backgroundColor = 'white';
+            modalContent.style.borderRadius = '24px';
+            modalContent.style.padding = '30px';
+            modalContent.style.textAlign = 'center';
+            modalContent.style.maxWidth = '300px';
+            modalContent.style.boxShadow = '0 20px 60px rgba(0,0,0,0.3)';
+            modalContent.innerHTML = `
+                <div style="font-size: 64px; margin-bottom: 16px;">🙏</div>
+                <h2 style="color: #1e3c2c; margin-bottom: 12px;">Спасибо!</h2>
+                <p style="color: #2a6b3c; font-size: 18px; margin-bottom: 8px;">Гараж №${garageNumber}</p>
+                <p style="color: #555; margin-bottom: 20px;">Показания успешно переданы!</p>
+                <button id="closeThanksBtn" style="background: #2a6b3c; color: white; border: none; padding: 10px 20px; border-radius: 30px; cursor: pointer; font-size: 16px;">Закрыть</button>
+            `;
+            
+            modalOverlay.appendChild(modalContent);
+            document.body.appendChild(modalOverlay);
+            
+            document.getElementById('closeThanksBtn').onclick = () => {
+                document.body.removeChild(modalOverlay);
+            };
+            
+            modalOverlay.onclick = (e) => {
+                if (e.target === modalOverlay) {
+                    document.body.removeChild(modalOverlay);
+                }
+            };
+        }
         
         function displayReadings() {
             if (readings.length === 0) {
@@ -368,7 +410,6 @@ async function saveToGoogleSheets(readingData) {
                 garageNumber: garageNumber,
                 reading: readingValue,
                 notes: notes || null,
-                photo: currentPhoto || null,
                 date: new Date().toISOString()
             };
             
@@ -388,6 +429,7 @@ async function saveToGoogleSheets(readingData) {
             
             if (cloudSaved) {
                 showMessage('✅ Показания отправлены!', 'success');
+                showThanksModal(garageNumber);
             } else if (isOnline()) {
                 showMessage('⚠️ Данные сохранены на устройстве, но не отправлены в облако', 'info');
             } else {
