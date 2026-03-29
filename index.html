@@ -2,133 +2,425 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Гаражи Плотина</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Гаражи Плотина - передача показаний</title>
     <style>
-        body { font-family: Arial; padding: 20px; background: #1e3c2c; }
-        .container { max-width: 500px; margin: 0 auto; background: white; padding: 20px; border-radius: 20px; }
-        input, button, textarea { width: 100%; padding: 10px; margin: 10px 0; }
-        button { background: #2a6b3c; color: white; border: none; cursor: pointer; }
-        .photo-upload { border: 2px dashed #ccc; padding: 20px; text-align: center; cursor: pointer; margin: 10px 0; }
-        .photo-preview img { max-width: 100%; max-height: 150px; margin-top: 10px; }
-        .message { padding: 10px; margin: 10px 0; border-radius: 10px; display: none; }
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c2c 0%, #2a6b3c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c2c 0%, #2a6b3c 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .content { padding: 24px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #1e3c2c; }
+        input, textarea {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #2a6b3c;
+            box-shadow: 0 0 0 3px rgba(42,107,60,0.1);
+        }
+        .photo-upload {
+            border: 2px dashed #c0c0c0;
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+        .photo-upload:hover { border-color: #2a6b3c; background: #f0f7f0; }
+        .photo-upload input { display: none; }
+        .photo-label {
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        .photo-label span:first-child { font-size: 32px; }
+        .photo-preview { margin-top: 15px; text-align: center; }
+        .photo-preview img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #1e3c2c 0%, #2a6b3c 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        button:active { transform: translateY(0); }
+        button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .message {
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+        .message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .message.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .history { margin-top: 30px; border-top: 2px solid #f0f0f0; padding-top: 20px; }
+        .history h3 { margin-bottom: 15px; color: #1e3c2c; display: flex; align-items: center; gap: 8px; }
+        .reading-card {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 12px;
+            border-left: 4px solid #2a6b3c;
+        }
+        .reading-card .garage { font-weight: bold; color: #2a6b3c; font-size: 16px; margin-bottom: 8px; }
+        .reading-card .value { font-size: 20px; font-weight: bold; color: #1e3c2c; margin: 8px 0; }
+        .reading-card .notes { color: #666; font-size: 13px; margin: 8px 0; padding: 8px; background: #fff; border-radius: 8px; }
+        .reading-card .date { font-size: 11px; color: #999; margin-top: 8px; }
+        .btn-clear { background: #dc3545; margin-top: 15px; font-size: 14px; padding: 12px; }
+        .btn-clear:hover { background: #c82333; }
+        .stats {
+            background: #e8f5e9;
+            padding: 12px;
+            border-radius: 12px;
+            margin: 15px 0;
+            text-align: center;
+            font-size: 14px;
+            color: #1e3c2c;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 600px) { body { padding: 10px; } .content { padding: 20px; } .header h1 { font-size: 24px; } }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; cursor: pointer; }
+        .modal img { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 90%; max-height: 90%; object-fit: contain; }
+        .modal-close { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; cursor: pointer; }
+        .online-status { font-size: 12px; margin-top: 8px; padding: 5px 10px; border-radius: 20px; display: inline-block; }
+        .status-online { background: #d4edda; color: #155724; }
+        .status-offline { background: #f8d7da; color: #721c24; }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>🏢 Гаражи Плотина</h1>
-    <p>Передача показаний электроэнергии</p>
-    
-    <div id="message" class="message"></div>
-    
-    <input type="text" id="garageNumber" placeholder="Номер гаража">
-    <input type="number" id="reading" placeholder="Показания (кВт·ч)">
-    
-    <div class="photo-upload" id="photoUploadArea">
-        📷 Нажмите для загрузки фото
-        <input type="file" id="photoInput" accept="image/*" capture="environment" style="display:none">
+    <div class="container">
+        <div class="header">
+            <h1><span>🏢</span><span>Гаражи Плотина</span></h1>
+            <p>Передача текущих показаний электроэнергии</p>
+        </div>
+        
+        <div class="content">
+            <div id="message" class="message"></div>
+            
+            <form id="readingForm">
+                <div class="form-group">
+                    <label>📝 Номер гаража:</label>
+                    <input type="text" id="garageNumber" placeholder="Например: 15, 23А, 101" required autocomplete="off">
+                </div>
+                
+                <div class="form-group">
+                    <label>⚡ Текущие показания (кВт·ч):</label>
+                    <input type="number" id="reading" step="0.1" placeholder="Введите текущие показания счетчика" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>📸 Фото счетчика (рекомендуется):</label>
+                    <div class="photo-upload" id="photoUploadArea">
+                        <div class="photo-label">
+                            <span>📷</span>
+                            <span>Нажмите для загрузки или фото</span>
+                            <span style="font-size: 12px;">Поддержируются JPG, PNG</span>
+                        </div>
+                        <input type="file" id="photoInput" accept="image/jpeg,image/png,image/jpg" capture="environment">
+                    </div>
+                    <div id="photoPreview" class="photo-preview"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>💬 Примечание (необязательно):</label>
+                    <textarea id="notes" rows="2" placeholder="Например: счётчик на столбе, требуется замена и т.д."></textarea>
+                </div>
+                
+                <button type="submit" id="submitBtn">📤 Отправить показания</button>
+            </form>
+            
+            <div class="history">
+                <h3>📊 История показаний</h3>
+                <div id="readingsList"></div>
+                <button id="clearHistory" class="btn-clear">🗑️ Очистить историю на этом устройстве</button>
+                <p style="font-size: 11px; color: #999; text-align: center; margin-top: 15px;">
+                    ✅ Данные сохраняются на вашем устройстве и автоматически отправляются в общую таблицу
+                </p>
+            </div>
+        </div>
     </div>
-    <div id="photoPreview" class="photo-preview"></div>
     
-    <textarea id="notes" placeholder="Примечание (необязательно)"></textarea>
-    
-    <button id="submitBtn">📤 Отправить показания</button>
-    
-    <div id="history"></div>
-</div>
+    <div id="photoModal" class="modal" onclick="closeModal()">
+        <span class="modal-close">&times;</span>
+        <img id="modalImage" src="" alt="Фото счетчика">
+    </div>
 
-<script>
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyE8hY8DGVwvhO5P3GqvWuIr6u1hs7mlhTgYXGESUZHH0ktCSe7TSrRZXJ6KXLgWiOr8A/exec';
-    const STORAGE_KEY = 'garageReadings_Plotina';
-    let readings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-    let currentPhoto = null;
-    
-    function showMessage(text, type) {
-        const msg = document.getElementById('message');
-        msg.textContent = text;
-        msg.className = `message ${type}`;
-        msg.style.display = 'block';
-        setTimeout(() => msg.style.display = 'none', 3000);
-    }
-    
-    document.getElementById('photoUploadArea').onclick = () => {
-        document.getElementById('photoInput').click();
-    };
-    
-    document.getElementById('photoInput').onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            showMessage('Файл слишком большой (макс 5 МБ)', 'error');
-            return;
+    <script>
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyE8hY8DGVwvhO5P3GqvWuIr6u1hs7mlhTgYXGESUZHH0ktCSe7TSrRZXJ6KXLgWiOr8A/exec';
+        const STORAGE_KEY = 'garageReadings_Plotina';
+        let readings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        
+        const form = document.getElementById('readingForm');
+        const garageNumberInput = document.getElementById('garageNumber');
+        const readingInput = document.getElementById('reading');
+        const photoInput = document.getElementById('photoInput');
+        const photoPreview = document.getElementById('photoPreview');
+        const photoUploadArea = document.getElementById('photoUploadArea');
+        const notesInput = document.getElementById('notes');
+        const messageDiv = document.getElementById('message');
+        const readingsListDiv = document.getElementById('readingsList');
+        const clearHistoryBtn = document.getElementById('clearHistory');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        let currentPhoto = null;
+        
+        function isOnline() { return navigator.onLine; }
+        
+        function showOnlineStatus() {
+            const statusDiv = document.createElement('div');
+            statusDiv.id = 'onlineStatus';
+            statusDiv.style.cssText = 'text-align: center; margin-bottom: 15px;';
+            statusDiv.innerHTML = isOnline() 
+                ? '<span class="online-status status-online">🟢 Онлайн - данные будут сохранены в облаке</span>'
+                : '<span class="online-status status-offline">🔴 Офлайн - данные сохранятся на устройстве</span>';
+            const existingStatus = document.getElementById('onlineStatus');
+            if (existingStatus) existingStatus.replaceWith(statusDiv);
+            else form.before(statusDiv);
         }
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            currentPhoto = ev.target.result;
-            document.getElementById('photoPreview').innerHTML = `<img src="${currentPhoto}" alt="Фото">`;
-        };
-        reader.readAsDataURL(file);
-    };
-    
-    async function sendData(garageNumber, reading, notes, photo) {
-        try {
-            await fetch(GOOGLE_SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ garageNumber, reading, notes, photo, timestamp: new Date().toISOString() })
-            });
-            return true;
-        } catch (e) {
-            console.error(e);
-            return false;
-        }
-    }
-    
-    function displayHistory() {
-        const historyDiv = document.getElementById('history');
-        if (readings.length === 0) {
-            historyDiv.innerHTML = '<p>Пока нет показаний</p>';
-            return;
-        }
-        let html = '<h3>История:</h3>';
-        [...readings].reverse().forEach(r => {
-            html += `<div><b>Гараж ${r.garageNumber}</b>: ${r.reading} кВт·ч (${new Date(r.date).toLocaleString()})</div>`;
+        
+        window.addEventListener('online', () => { showOnlineStatus(); showMessage('Интернет появился!', 'success'); });
+        window.addEventListener('offline', () => { showOnlineStatus(); showMessage('Интернет пропал. Данные сохранятся на устройстве', 'info'); });
+        
+        photoUploadArea.addEventListener('click', (e) => { if (e.target !== photoInput) photoInput.click(); });
+        
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    showMessage('Файл слишком большой. Максимальный размер 5 МБ', 'error');
+                    photoInput.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentPhoto = e.target.result;
+                    photoPreview.innerHTML = `
+                        <div style="position: relative; display: inline-block;">
+                            <img src="${currentPhoto}" alt="Фото счетчика" onclick="openModal('${currentPhoto}')">
+                            <button type="button" onclick="removePhoto()" style="position: absolute; top: -10px; right: -10px; background: red; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: 18px;">×</button>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+            } else { removePhoto(); }
         });
-        historyDiv.innerHTML = html;
-    }
-    
-    document.getElementById('submitBtn').onclick = async () => {
-        const garageNumber = document.getElementById('garageNumber').value.trim();
-        const reading = document.getElementById('reading').value;
-        const notes = document.getElementById('notes').value.trim();
         
-        if (!garageNumber) { showMessage('Введите номер гаража', 'error'); return; }
-        if (!reading) { showMessage('Введите показания', 'error'); return; }
-        const readingValue = parseFloat(reading);
-        if (isNaN(readingValue)) { showMessage('Введите число', 'error'); return; }
+        window.removePhoto = function() { currentPhoto = null; photoPreview.innerHTML = ''; photoInput.value = ''; };
+        window.openModal = function(src) { document.getElementById('modalImage').src = src; document.getElementById('photoModal').style.display = 'block'; };
+        window.closeModal = function() { document.getElementById('photoModal').style.display = 'none'; };
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
         
-        const newReading = { garageNumber, reading: readingValue, notes, date: new Date().toISOString() };
-        readings.push(newReading);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            setTimeout(() => messageDiv.style.display = 'none', 4000);
+        }
         
-        const saved = await sendData(garageNumber, readingValue, notes, currentPhoto);
+        async function saveToGoogleSheets(readingData) {
+            console.log('📤 Отправка...');
+            try {
+                await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        garageNumber: readingData.garageNumber,
+                        reading: readingData.reading,
+                        notes: readingData.notes || '',
+                        photo: readingData.photo || '',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                console.log('✅ Данные отправлены');
+                return true;
+            } catch (error) {
+                console.error('❌ Ошибка:', error);
+                return false;
+            }
+        }
         
-        if (saved) showMessage('✅ Отправлено!', 'success');
-        else showMessage('⚠️ Сохранено на устройстве', 'info');
+        function displayReadings() {
+            if (readings.length === 0) {
+                readingsListDiv.innerHTML = '<p style="text-align: center; color: #999;">Пока нет переданных показаний</p>';
+                updateStats();
+                return;
+            }
+            let html = '';
+            [...readings].reverse().forEach(r => {
+                html += `
+                    <div class="reading-card">
+                        <div class="garage">🚗 Гараж №${escapeHtml(r.garageNumber)}</div>
+                        <div class="value">⚡ ${r.reading} кВт·ч</div>
+                        ${r.notes ? `<div class="notes">💬 ${escapeHtml(r.notes)}</div>` : ''}
+                        <div class="date">📅 ${new Date(r.date).toLocaleString('ru-RU')}</div>
+                    </div>
+                `;
+            });
+            readingsListDiv.innerHTML = html;
+            updateStats();
+        }
         
-        document.getElementById('garageNumber').value = '';
-        document.getElementById('reading').value = '';
-        document.getElementById('notes').value = '';
-        document.getElementById('photoPreview').innerHTML = '';
-        currentPhoto = null;
-        displayHistory();
-    };
-    
-    displayHistory();
-    console.log('Сайт работает');
-</script>
+        function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
+        
+        function updateStats() {
+            const total = readings.length;
+            let statsDiv = document.querySelector('.stats');
+            if (!statsDiv) {
+                statsDiv = document.createElement('div');
+                statsDiv.className = 'stats';
+                document.querySelector('.history h3')?.after(statsDiv);
+            }
+            const lastReading = readings.length > 0 ? readings[readings.length - 1] : null;
+            statsDiv.innerHTML = `📊 Всего передано показаний: ${total}${lastReading ? ` | Последнее: ${new Date(lastReading.date).toLocaleDateString('ru-RU')}` : ''}`;
+        }
+        
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const garageNumber = garageNumberInput.value.trim();
+            const reading = readingInput.value;
+            const notes = notesInput.value.trim();
+            
+            if (!garageNumber) {
+                showMessage('❌ Укажите номер гаража!', 'error');
+                garageNumberInput.focus();
+                return;
+            }
+            
+            if (!reading) {
+                showMessage('❌ Введите показания счётчика!', 'error');
+                readingInput.focus();
+                return;
+            }
+            
+            const readingValue = parseFloat(reading);
+            if (isNaN(readingValue) || readingValue < 0) {
+                showMessage('❌ Введите корректные показания (положительное число)', 'error');
+                readingInput.focus();
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading-spinner"></span> Отправка...';
+            
+            const cloudData = {
+                garageNumber: garageNumber,
+                reading: readingValue,
+                notes: notes || null,
+                photo: currentPhoto || null,
+                date: new Date().toISOString()
+            };
+            
+            let cloudSaved = false;
+            if (isOnline()) {
+                cloudSaved = await saveToGoogleSheets(cloudData);
+            }
+            
+            const localData = {
+                garageNumber: garageNumber,
+                reading: readingValue,
+                notes: notes || null,
+                date: new Date().toISOString()
+            };
+            readings.push(localData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
+            
+            if (cloudSaved) {
+                showMessage('✅ Показания отправлены!', 'success');
+            } else if (isOnline()) {
+                showMessage('⚠️ Данные сохранены на устройстве, но не отправлены в облако', 'info');
+            } else {
+                showMessage('✅ Сохранено на устройстве. При появлении интернета отправятся в облако', 'success');
+            }
+            
+            garageNumberInput.value = '';
+            readingInput.value = '';
+            notesInput.value = '';
+            removePhoto();
+            displayReadings();
+            
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '📤 Отправить показания';
+            garageNumberInput.focus();
+        });
+        
+        clearHistoryBtn.addEventListener('click', () => {
+            if (confirm('Очистить историю на этом устройстве?')) {
+                readings = [];
+                localStorage.removeItem(STORAGE_KEY);
+                displayReadings();
+                showMessage('История очищена', 'success');
+            }
+        });
+        
+        displayReadings();
+        showOnlineStatus();
+        
+        if (/Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            const hint = document.createElement('div');
+            hint.style.cssText = 'background:#e8f5e9;padding:10px;border-radius:12px;font-size:12px;margin-top:10px;color:#2a6b3c;text-align:center;';
+            hint.innerHTML = '📱 Для фото нажмите на область загрузки, затем "Сделать фото"';
+            document.querySelector('.photo-upload').after(hint);
+        }
+        
+        console.log('Сайт "Гаражи Плотина" загружен');
+    </script>
 </body>
 </html>
