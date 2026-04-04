@@ -87,15 +87,6 @@
         .reading-card .date { font-size: 11px; color: #999; margin-top: 8px; }
         .btn-clear { background: #dc3545; margin-top: 15px; font-size: 14px; padding: 12px; }
         .btn-clear:hover { background: #c82333; }
-        .stats {
-            background: #e8f5e9;
-            padding: 12px;
-            border-radius: 12px;
-            margin: 15px 0;
-            text-align: center;
-            font-size: 14px;
-            color: #1e3c2c;
-        }
         .payment-info {
             background: #e8f5e9;
             padding: 16px;
@@ -118,6 +109,27 @@
             color: #2a6b3c;
             margin: 10px 0;
         }
+        .check-result {
+            background: #f0f7f0;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #c8e6d9;
+            text-align: center;
+        }
+        .check-result h3 {
+            color: #1e3c2c;
+            margin-bottom: 12px;
+        }
+        .result-item {
+            margin: 8px 0;
+            font-size: 16px;
+        }
+        .result-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2a6b3c;
+        }
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -133,6 +145,20 @@
         .online-status { font-size: 12px; margin-top: 8px; padding: 5px 10px; border-radius: 20px; display: inline-block; }
         .status-online { background: #d4edda; color: #155724; }
         .status-offline { background: #f8d7da; color: #721c24; }
+        .check-section {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .info-badge {
+            display: inline-block;
+            background: #e8f5e9;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 12px;
+            color: #2a6b3c;
+            margin-top: 8px;
+        }
     </style>
 </head>
 <body>
@@ -144,6 +170,18 @@
         
         <div class="content">
             <div id="message" class="message"></div>
+            
+            <!-- Блок проверки -->
+            <div class="check-section">
+                <div class="form-group">
+                    <label>🔍 Проверить последние показания:</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="checkGarage" placeholder="Введите номер гаража" style="flex: 1;">
+                        <button id="checkBtn" style="width: auto; margin-top: 0; padding: 14px 20px;">Проверить</button>
+                    </div>
+                </div>
+                <div id="checkResult" class="check-result" style="display: none;"></div>
+            </div>
             
             <form id="readingForm">
                 <div class="form-group">
@@ -173,7 +211,6 @@
                 </p>
             </div>
             
-            <!-- Блок с реквизитами для оплаты -->
             <div class="payment-info">
                 <h4>💳 Оплата за электроэнергию</h4>
                 <p>Переведите сумму за потреблённую электроэнергию по номеру телефона:</p>
@@ -185,7 +222,7 @@
     </div>
 
     <script>
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx2SaM4EzGWKVBp3gXMLewVtNt-GecTulC_SnMi7t2DLwaa-GOojdIeiZPJt91F0P4IJQ/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzlcNmPwJc6u7KR_Zf6TpAVsM8uZEo--j5rrX9CPpy4q60ufZ7mL1YBW_6Pzyd0mSNxoQ/exec';
         const STORAGE_KEY = 'garageReadings_Plotina';
         let readings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
         
@@ -197,26 +234,45 @@
         const readingsListDiv = document.getElementById('readingsList');
         const clearHistoryBtn = document.getElementById('clearHistory');
         const submitBtn = document.getElementById('submitBtn');
+        const checkBtn = document.getElementById('checkBtn');
+        const checkGarage = document.getElementById('checkGarage');
+        const checkResult = document.getElementById('checkResult');
         
         function showMessage(text, type) {
             messageDiv.textContent = text;
             messageDiv.className = `message ${type}`;
             messageDiv.style.display = 'block';
-            setTimeout(() => messageDiv.style.display = 'none', 3000);
+            setTimeout(() => messageDiv.style.display = 'none', 4000);
         }
         
         async function sendData(garageNumber, reading, notes) {
             try {
-                await fetch(GOOGLE_SCRIPT_URL, {
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ garageNumber, reading, notes, timestamp: new Date().toISOString() })
                 });
+                const text = await response.text();
+                if (text.startsWith('error:')) {
+                    console.error(text);
+                    return false;
+                }
                 return true;
             } catch (e) {
                 console.error(e);
                 return false;
+            }
+        }
+        
+        async function checkGarageData(garageNumber) {
+            try {
+                const url = `${GOOGLE_SCRIPT_URL}?garage=${encodeURIComponent(garageNumber)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                return data;
+            } catch (e) {
+                console.error(e);
+                return { error: e.message };
             }
         }
         
@@ -257,6 +313,42 @@
         
         function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
         
+        checkBtn.onclick = async () => {
+            const garageNumber = checkGarage.value.trim();
+            if (!garageNumber) {
+                showMessage('❌ Введите номер гаража', 'error');
+                return;
+            }
+            
+            checkBtn.disabled = true;
+            checkBtn.innerHTML = '⏳ Загрузка...';
+            checkResult.style.display = 'block';
+            checkResult.innerHTML = '<div style="text-align:center;">Загрузка данных...</div>';
+            
+            const data = await checkGarageData(garageNumber);
+            
+            if (data.error) {
+                checkResult.innerHTML = `<div style="color:red;">❌ Ошибка: ${data.error}</div>`;
+            } else if (!data.found) {
+                checkResult.innerHTML = `<div style="color:#ff9800;">⚠️ Гараж №${garageNumber} не найден в базе данных</div>`;
+            } else {
+                checkResult.innerHTML = `
+                    <h3>🏢 Гараж №${data.garage}</h3>
+                    <div class="info-badge">👤 Владелец: ${data.owner || 'не указан'}</div>
+                    <div class="result-item">🔰 Начальные показания: <span class="result-value">${data.initialReading}</span> кВт·ч</div>
+                    <div class="result-item">⚡ Последние показания: <span class="result-value">${data.lastReading}</span> кВт·ч</div>
+                    <div class="result-item">📉 Расход: <span class="result-value">${data.consumption}</span> кВт·ч</div>
+                    <div class="result-item">💰 К оплате (тариф 5.5 руб): <span class="result-value">${data.payment}</span> ₽</div>
+                    <div class="result-item">📅 Дата последней передачи: ${data.lastDate ? new Date(data.lastDate).toLocaleDateString('ru-RU') : '—'}</div>
+                    <hr style="margin: 15px 0;">
+                    <p style="font-size: 14px; color: #666;">💳 Для оплаты используйте реквизиты ниже</p>
+                `;
+            }
+            
+            checkBtn.disabled = false;
+            checkBtn.innerHTML = 'Проверить';
+        };
+        
         form.onsubmit = async (e) => {
             e.preventDefault();
             const garageNumber = garageNumberInput.value.trim();
@@ -273,20 +365,20 @@
             
             const saved = await sendData(garageNumber, readingValue, notes);
             
-            readings.push({ garageNumber, reading: readingValue, notes, date: new Date().toISOString() });
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
-            
             if (saved) {
+                readings.push({ garageNumber, reading: readingValue, notes, date: new Date().toISOString() });
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(readings));
                 showMessage('✅ Показания отправлены!', 'success');
                 showThanksModal(garageNumber);
+                displayReadings();
             } else {
-                showMessage('⚠️ Сохранено на устройстве', 'info');
+                showMessage('❌ Ошибка при отправке. Проверьте номер гаража или показания.', 'error');
             }
             
             garageNumberInput.value = '';
             readingInput.value = '';
             notesInput.value = '';
-            displayReadings();
+            
             submitBtn.disabled = false;
             submitBtn.innerHTML = '📤 Отправить показания';
         };
