@@ -246,23 +246,20 @@
         }
         
         async function sendData(garageNumber, reading, notes) {
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ garageNumber, reading, notes, timestamp: new Date().toISOString() })
-                });
-                const text = await response.text();
-                if (text.startsWith('error:')) {
-                    console.error(text);
-                    return false;
-                }
-                return true;
-            } catch (e) {
-                console.error(e);
-                return false;
-            }
-        }
+    try {
+        await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',  // ← ЭТО ГЛАВНОЕ
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ garageNumber, reading, notes, timestamp: new Date().toISOString() })
+        });
+        console.log('Данные отправлены (режим no-cors)');
+        return true;
+    } catch (e) {
+        console.error(e);
+        return false;
+    }
+}
         
         async function checkGarageData(garageNumber) {
             try {
