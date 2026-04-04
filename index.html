@@ -96,6 +96,50 @@
             font-size: 14px;
             color: #1e3c2c;
         }
+        .statistics {
+            background: #f0f7f0;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #c8e6d9;
+        }
+        .statistics h3 {
+            color: #1e3c2c;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .stat-card {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2a6b3c;
+        }
+        .top3-list {
+            margin-top: 8px;
+        }
+        .top3-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+        }
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -122,6 +166,12 @@
         
         <div class="content">
             <div id="message" class="message"></div>
+            
+            <!-- Блок статистики -->
+            <div id="statistics" class="statistics" style="display: none;">
+                <h3>📊 Общая статистика</h3>
+                <div class="stat-grid" id="statGrid"></div>
+            </div>
             
             <form id="readingForm">
                 <div class="form-group">
@@ -166,6 +216,8 @@
         const readingsListDiv = document.getElementById('readingsList');
         const clearHistoryBtn = document.getElementById('clearHistory');
         const submitBtn = document.getElementById('submitBtn');
+        const statisticsDiv = document.getElementById('statistics');
+        const statGrid = document.getElementById('statGrid');
         
         function showMessage(text, type) {
             messageDiv.textContent = text;
@@ -186,6 +238,51 @@
             } catch (e) {
                 console.error(e);
                 return false;
+            }
+        }
+        
+        function loadStatistics() {
+            try {
+                const total = readings.length;
+                const maxReading = readings.length ? Math.max(...readings.map(r => r.reading)) : 0;
+                const maxGarage = readings.reduce((max, r) => r.reading > max.reading ? r : max, { reading: 0, garageNumber: '—' }).garageNumber;
+                const avgReading = readings.length ? (readings.reduce((sum, r) => sum + r.reading, 0) / readings.length).toFixed(1) : 0;
+                const lastDate = readings.length ? new Date(Math.max(...readings.map(r => new Date(r.date)))).toLocaleDateString('ru-RU') : '—';
+                const top3 = [...readings].sort((a,b) => b.reading - a.reading).slice(0,3);
+                
+                statGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-label">📊 Всего передано</div>
+                        <div class="stat-value">${total}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">🏆 Максимальный расход</div>
+                        <div class="stat-value">${maxReading} кВт·ч</div>
+                        <div style="font-size: 12px;">Гараж №${maxGarage}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">📉 Средний расход</div>
+                        <div class="stat-value">${avgReading} кВт·ч</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">📅 Последняя передача</div>
+                        <div class="stat-value">${lastDate}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">🔥 Топ-3 по расходу</div>
+                        <div class="top3-list">
+                            ${top3.map((r, i) => `
+                                <div class="top3-item">
+                                    <span>${i+1}. Гараж №${r.garageNumber}</span>
+                                    <span><b>${r.reading}</b> кВт·ч</span>
+                                </div>
+                            `).join('') || '—'}
+                        </div>
+                    </div>
+                `;
+                statisticsDiv.style.display = 'block';
+            } catch(e) {
+                console.error('Ошибка статистики:', e);
             }
         }
         
@@ -248,6 +345,7 @@
             if (saved) {
                 showMessage('✅ Показания отправлены!', 'success');
                 showThanksModal(garageNumber);
+                loadStatistics();
             } else {
                 showMessage('⚠️ Сохранено на устройстве', 'info');
             }
@@ -265,11 +363,13 @@
                 readings = [];
                 localStorage.removeItem(STORAGE_KEY);
                 displayReadings();
+                loadStatistics();
                 showMessage('История очищена', 'success');
             }
         };
         
         displayReadings();
+        loadStatistics();
     </script>
 </body>
 </html>
